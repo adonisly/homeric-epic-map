@@ -7,7 +7,7 @@ export const EMPTY_TRANSLATIONS: Translations = Object.freeze({})
 const messages:Record<string,string>={
   '荷马史诗脉络图':'Homeric Epic Map',
   '交互式探索荷马史诗中的神祇与英雄 · 神谱 · 特洛伊战争 · 伊利亚特 · 奥德赛':'Explore gods, heroes and family lineages · The Iliad · The Odyssey · The Trojan War',
-  '返回首页':'Back to home', '阅读路书 ReadMap':'ReadMap (Chinese)',
+  '返回首页':'Back to home', '阅读路书 ReadMap':'ReadMap (Chinese)', '阅读路书':'ReadMap', '阅读路径与知识图谱':'Reading paths and knowledge graphs (Chinese)',
   '搜索人物 / 神职 / 称号（中文·拼音·外文名·别名）':'Search names, roles, epithets or aliases…',
   '搜索人物 / 神职 / 称号 / 地名 / 族群 / 物名（中文·拼音·外文名·别名）':'Search names, roles, epithets or aliases…',
   '项目与分享':'Project and sharing','分享当前视图':'Share this view','人物索引':'Character index','纠错反馈':'Suggest a correction','源码 · AGPL-3.0':'Source · AGPL-3.0',

@@ -17,7 +17,7 @@ import { createI18n, EMPTY_TRANSLATIONS, type Locale, type Translations } from '
 import { localizeGraph, relativeRelationLabel, factionName } from './i18n/content.mjs'
 import { kinshipRole } from './kinship'
 import {
-  Home,
+  BookOpen,
   Landmark,
   Search,
   X,
@@ -114,7 +114,7 @@ export interface HomericGraphProps {
   trackSearch?: (term: string) => Promise<boolean>
 }
 
-export function HomericGraph({ graph: sourceGraph, locale = 'zh', translations = EMPTY_TRANSLATIONS, onLocaleChange, backHref, backLabel = '返回首页', sourceHref, catalogHref, feedbackHref, searchPlaceholder = '搜索人物 / 神职 / 称号 / 地名 / 族群 / 物名（中文·拼音·外文名·别名）', loadHotSearches, trackSearch }: HomericGraphProps) {
+export function HomericGraph({ graph: sourceGraph, locale = 'zh', translations = EMPTY_TRANSLATIONS, onLocaleChange, backHref, backLabel = '阅读路书', sourceHref, catalogHref, feedbackHref, searchPlaceholder = '搜索人物 / 神职 / 称号 / 地名 / 族群 / 物名（中文·拼音·外文名·别名）', loadHotSearches, trackSearch }: HomericGraphProps) {
   const { en, t, name, secondary, generation, hotTerm } = useMemo(() => createI18n(locale, translations, sourceGraph), [locale, translations, sourceGraph.figures])
   const graph: HomericGraphData = useMemo(() => localizeGraph(sourceGraph, locale, translations), [sourceGraph.figures, sourceGraph.relations, sourceGraph.factions, sourceGraph.relationTypes, sourceGraph.nameIndex, locale, translations])
   const { factions, figures, relations, relationTypes, nameIndex } = graph
@@ -1941,6 +1941,7 @@ export function HomericGraph({ graph: sourceGraph, locale = 'zh', translations =
 
       <div className={`hg-hero${onLocaleChange ? ' has-locale' : ''}`}>
         <div className="htxt">
+          {backHref && <a className="hero-brand" href={backHref} title={t('阅读路径与知识图谱')}><BookOpen size={14} strokeWidth={2} aria-hidden="true" /><span>{t(backLabel)}</span></a>}
           <h1><Landmark size={22} strokeWidth={2} />{t('荷马史诗脉络图')}</h1>
           <p>{t('交互式探索荷马史诗中的神祇与英雄 · 神谱 · 特洛伊战争 · 伊利亚特 · 奥德赛')}</p>
         </div>
@@ -1949,7 +1950,6 @@ export function HomericGraph({ graph: sourceGraph, locale = 'zh', translations =
           {catalogHref && <a href={catalogHref}>{t('人物索引')}</a>}
           {feedbackHref && <a href={feedbackHref} target="_blank" rel="noopener noreferrer">{t('纠错反馈')}</a>}
           {sourceHref && <a href={sourceHref} target="_blank" rel="noopener noreferrer">{t('源码 · AGPL-3.0')}</a>}
-          {backHref && <a className="hero-back" href={backHref}><Home size={16} strokeWidth={2} /> <span>{t(backLabel)}</span></a>}
         </nav>
         {onLocaleChange && <button type="button" className="hero-language" lang={en ? 'zh-CN' : 'en'} aria-label={en ? '切换为中文' : 'Switch to English'}
           onClick={switchLanguage}>{en ? '中文' : 'English'}</button>}
@@ -2422,7 +2422,7 @@ const HG_CSS = `
 .hg .legend-disclosure summary{cursor:pointer;color:var(--muted);font-size:12px;line-height:24px}
 .hg .legend-disclosure summary svg{vertical-align:middle;margin-inline:4px}
 .hg .legend-disclosure[open] .chips{margin-top:8px}
-@media(max-width:700px){.hg .hg-hero{flex-wrap:wrap}.hg .project-links{justify-content:flex-start}.hg .project-links .hero-back{font-size:12px;padding:7px 9px}}
+@media(max-width:700px){.hg .hg-hero{flex-wrap:wrap}.hg .project-links{justify-content:flex-start}}
 /* 渐变标题横幅:沿用之前的酒红色主色调 */
 .hg .hg-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px var(--page-gutter);color:#fff;background:linear-gradient(100deg,#a5384a 0%,#7c2f43 100%);box-shadow:0 6px 20px var(--shadow)}
 .hg .hg-hero.has-locale{display:grid;grid-template-columns:minmax(0,1fr) auto auto}
@@ -2431,8 +2431,9 @@ const HG_CSS = `
 .hg .hg-hero .htxt{flex:1;min-width:0}
 .hg .hg-hero .htxt h1{display:flex;align-items:center;gap:10px;margin:0;font-size:clamp(20px,3vw,30px);font-weight:800;letter-spacing:.5px;color:#fff;line-height:1.2}
 .hg .hg-hero .htxt p{margin:6px 0 0;font-size:13.5px;color:rgba(255,255,255,.85)}
-.hg .hg-hero .hero-back{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:#fff;text-decoration:none;font-size:14px;padding:8px 14px;border-radius:8px;border:0;background:transparent;transition:background .2s;flex-shrink:0}
-.hg .hg-hero .hero-back:hover{background:rgba(255,255,255,.2)}
+.hg .hero-brand{display:inline-flex;align-items:center;gap:6px;min-height:28px;margin:0 0 7px -7px;padding:4px 7px;border-radius:5px;color:#fff;text-decoration:none;font-size:12px;font-weight:600;line-height:20px}
+.hg .hero-brand:hover{background:rgba(255,255,255,.14);text-decoration:underline;text-underline-offset:3px}
+.hg .hero-brand:focus-visible{outline:2px solid #fff;outline-offset:2px}
 
 .hg .hg-header{position:sticky;top:0;z-index:40;backdrop-filter:blur(8px);background:var(--headbg);border-bottom:1px solid var(--line);padding:14px var(--page-gutter)}
 .hg .toolbar{display:flex;gap:12px;align-items:center;margin-top:0;flex-wrap:wrap}
@@ -2706,7 +2707,6 @@ const HG_CSS = `
   .hg{--page-gutter:clamp(16px,4vw,28px)}
   .hg .hg-hero{padding-top:14px;padding-bottom:14px;gap:10px}
   .hg .hg-hero .htxt p{font-size:11.5px}
-  .hg .hg-hero .hero-back{padding:7px 11px;font-size:12.5px}
   .hg .hg-header{padding-top:11px;padding-bottom:11px}
   .hg .toolbar{gap:8px;margin-top:0}
   .hg .search{flex:1 0 100%;max-width:none;min-width:0;order:-1}

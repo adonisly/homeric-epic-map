@@ -26,7 +26,7 @@ function App() {
   if (error) return <p role="alert">{locale === 'en' ? 'Unable to load the map. Refresh or report the problem through GitHub Issues.' : '图谱加载失败，请刷新重试或通过 GitHub Issues 反馈。'}</p>
   if (!graph) return <p role="status">{locale === 'en' ? 'Loading the Homeric Epic Map…' : '正在加载荷马史诗脉络图…'}</p>
   return <HomericGraph graph={graph} locale={locale} translations={translations}
-    onLocaleChange={(next,state) => window.location.assign(createSharedUrl(new URL(paths[next],window.location.origin).href,state))} backHref="https://readmap.inklinks.io/" backLabel="阅读路书 ReadMap"
+    onLocaleChange={(next,state) => window.location.assign(createSharedUrl(new URL(paths[next],window.location.origin).href,state))} backHref="https://readmap.inklinks.io/" backLabel="阅读路书"
     sourceHref={import.meta.env.VITE_SOURCE_URL || 'https://github.com/adonisly/homeric-epic-map/tree/main'}
     catalogHref={(locale === 'en' ? paths.en : paths.zh) + 'explore/'} feedbackHref="https://github.com/adonisly/homeric-epic-map/issues"
     searchPlaceholder="搜索人物 / 神职 / 称号（中文·拼音·外文名·别名）" />
