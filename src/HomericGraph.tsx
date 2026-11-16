@@ -1939,20 +1939,20 @@ export function HomericGraph({ graph: sourceGraph, locale = 'zh', translations =
     <div className={`hg${en ? ' hg-en' : ''}`}>
       <style>{HG_CSS}</style>
 
-      <div className="hg-hero">
+      <div className={`hg-hero${onLocaleChange ? ' has-locale' : ''}`}>
         <div className="htxt">
           <h1><Landmark size={22} strokeWidth={2} />{t('荷马史诗脉络图')}</h1>
           <p>{t('交互式探索荷马史诗中的神祇与英雄 · 神谱 · 特洛伊战争 · 伊利亚特 · 奥德赛')}</p>
         </div>
         <nav className="project-links" aria-label={t('项目与分享')}>
-          {onLocaleChange && <button type="button" lang={en ? 'zh-CN' : 'en'} aria-label={en ? '切换为中文' : 'Switch to English'}
-            onClick={switchLanguage}>{en ? '中文' : 'English'}</button>}
           <button type="button" onClick={shareView}>{t('分享当前视图')}</button>
           {catalogHref && <a href={catalogHref}>{t('人物索引')}</a>}
           {feedbackHref && <a href={feedbackHref} target="_blank" rel="noopener noreferrer">{t('纠错反馈')}</a>}
           {sourceHref && <a href={sourceHref} target="_blank" rel="noopener noreferrer">{t('源码 · AGPL-3.0')}</a>}
           {backHref && <a className="hero-back" href={backHref}><Home size={16} strokeWidth={2} /> <span>{t(backLabel)}</span></a>}
         </nav>
+        {onLocaleChange && <button type="button" className="hero-language" lang={en ? 'zh-CN' : 'en'} aria-label={en ? '切换为中文' : 'Switch to English'}
+          onClick={switchLanguage}>{en ? '中文' : 'English'}</button>}
       </div>
       {shareUrl && <div className="share-result" role="status"><span>{shareStatus}</span><input aria-label={t('分享链接')} readOnly value={shareUrl} onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => setShareUrl('')}>{t('关闭')}</button></div>}
 
@@ -2411,8 +2411,8 @@ const HG_CSS = `
 .hg *{box-sizing:border-box}
 .hg a{color:inherit}
 .hg .project-links{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
-.hg .project-links>a,.hg .project-links>button{color:inherit;font:inherit;font-size:12px;border:1px solid #ffffff66;border-radius:6px;background:transparent;padding:7px 9px;text-decoration:none;cursor:pointer}
-.hg .project-links a:hover,.hg .project-links button:hover{background:#ffffff20}
+.hg .project-links>a,.hg .project-links>button,.hg .hero-language{color:inherit;font:inherit;font-size:12px;border:1px solid #ffffff66;border-radius:6px;background:transparent;padding:7px 9px;text-decoration:none;cursor:pointer}
+.hg .project-links a:hover,.hg .project-links button:hover,.hg .hero-language:hover{background:#ffffff20}
 .hg .share-result{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px var(--page-gutter);font-size:13px;background:var(--accent-soft)}
 .hg .share-result input{flex:1;min-width:180px;padding:8px;border:1px solid var(--line);border-radius:6px}
 .hg .person-share{margin-top:10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--accent);font-size:12px;padding:6px 9px;cursor:pointer}
@@ -2425,6 +2425,9 @@ const HG_CSS = `
 @media(max-width:700px){.hg .hg-hero{flex-wrap:wrap}.hg .project-links{justify-content:flex-start}.hg .project-links .hero-back{font-size:12px;padding:7px 9px}}
 /* 渐变标题横幅:沿用之前的酒红色主色调 */
 .hg .hg-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px var(--page-gutter);color:#fff;background:linear-gradient(100deg,#a5384a 0%,#7c2f43 100%);box-shadow:0 6px 20px var(--shadow)}
+.hg .hg-hero.has-locale{display:grid;grid-template-columns:minmax(0,1fr) auto auto}
+.hg .hero-language{white-space:nowrap}
+@media(max-width:1023px){.hg .hg-hero.has-locale{grid-template-columns:minmax(0,1fr) auto}.hg .has-locale .project-links{grid-column:1/-1;grid-row:2;min-width:0}.hg .hero-language{grid-column:2;grid-row:1;align-self:start}}
 .hg .hg-hero .htxt{flex:1;min-width:0}
 .hg .hg-hero .htxt h1{display:flex;align-items:center;gap:10px;margin:0;font-size:clamp(20px,3vw,30px);font-weight:800;letter-spacing:.5px;color:#fff;line-height:1.2}
 .hg .hg-hero .htxt p{margin:6px 0 0;font-size:13.5px;color:rgba(255,255,255,.85)}
