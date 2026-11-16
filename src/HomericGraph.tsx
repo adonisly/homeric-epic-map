@@ -1679,6 +1679,8 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
           {c.variant_note && (
             <div className="variant-note">{c.variant_note}</div>
           )}
+          <button type="button" className="person-share" onClick={shareView}>分享此人物</button>
+          {shareUrl && <div className="person-share-result" role="status"><small>{shareStatus}</small><input aria-label="人物分享链接" value={shareUrl} readOnly onFocus={event => event.currentTarget.select()} /></div>}
         </div>
         <div className="dbody">
           {c.domain && (
@@ -2396,6 +2398,9 @@ const HG_CSS = `
 .hg .project-links a:hover,.hg .project-links button:hover{background:#ffffff20}
 .hg .share-result{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px var(--page-gutter);font-size:13px;background:var(--accent-soft)}
 .hg .share-result input{flex:1;min-width:180px;padding:8px;border:1px solid var(--line);border-radius:6px}
+.hg .person-share{margin-top:10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--accent);font-size:12px;padding:6px 9px;cursor:pointer}
+.hg .person-share-result{display:grid;gap:5px;margin-top:8px;color:var(--accent)}
+.hg .person-share-result input{width:100%;min-width:0;padding:6px;border:1px solid var(--line);border-radius:5px;font-size:11px}
 .hg .legend-disclosure{width:100%}
 .hg .legend-disclosure summary{cursor:pointer;color:var(--muted);font-size:12px;line-height:24px}
 .hg .legend-disclosure summary svg{vertical-align:middle;margin-inline:4px}
