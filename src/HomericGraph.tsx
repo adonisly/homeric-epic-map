@@ -18,6 +18,7 @@ import { localizeGraph, relativeRelationLabel, factionName } from './i18n/conten
 import { kinshipRole } from './kinship'
 import {
   BookOpen,
+  Github,
   Landmark,
   Search,
   X,
@@ -1946,6 +1947,10 @@ export function HomericGraph({ graph: sourceGraph, locale = 'zh', translations =
           <p>{t('交互式探索荷马史诗中的神祇与英雄 · 神谱 · 特洛伊战争 · 伊利亚特 · 奥德赛')}</p>
         </div>
         <nav className="project-links" aria-label={t('项目与分享')}>
+          <a className="hero-github" href="https://github.com/adonisly/homeric-epic-map" target="_blank" rel="noopener noreferrer"
+            aria-label={t('荷马史诗图谱 GitHub 源码与 Star 支持（新窗口打开）')} title={t('查看源码、提交建议或 Star 支持项目')}>
+            <Github size={14} aria-hidden="true" /><span>GitHub / Star</span>
+          </a>
           <button type="button" onClick={shareView}>{t('分享当前视图')}</button>
           {catalogHref && <a href={catalogHref}>{t('人物索引')}</a>}
           {feedbackHref && <a href={feedbackHref} target="_blank" rel="noopener noreferrer">{t('纠错反馈')}</a>}
@@ -2413,6 +2418,9 @@ const HG_CSS = `
 .hg .project-links{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
 .hg .project-links>a,.hg .project-links>button,.hg .hero-language{color:inherit;font:inherit;font-size:12px;border:1px solid #ffffff66;border-radius:6px;background:transparent;padding:7px 9px;text-decoration:none;cursor:pointer}
 .hg .project-links a:hover,.hg .project-links button:hover,.hg .hero-language:hover{background:#ffffff20}
+.hg .project-links .hero-github{display:inline-flex;align-items:center;gap:6px;background:#fffffff2;border-color:transparent;color:#111827;font-weight:600;white-space:nowrap}
+.hg .project-links .hero-github:hover{background:#fff}
+.hg .project-links>a:focus-visible,.hg .project-links>button:focus-visible,.hg .hero-language:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .hg .share-result{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px var(--page-gutter);font-size:13px;background:var(--accent-soft)}
 .hg .share-result input{flex:1;min-width:180px;padding:8px;border:1px solid var(--line);border-radius:6px}
 .hg .person-share{margin-top:10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--accent);font-size:12px;padding:6px 9px;cursor:pointer}

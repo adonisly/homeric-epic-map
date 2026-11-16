@@ -11,6 +11,7 @@ const messages:Record<string,string>={
   '搜索人物 / 神职 / 称号（中文·拼音·外文名·别名）':'Search names, roles, epithets or aliases…',
   '搜索人物 / 神职 / 称号 / 地名 / 族群 / 物名（中文·拼音·外文名·别名）':'Search names, roles, epithets or aliases…',
   '项目与分享':'Project and sharing','分享当前视图':'Share this view','人物索引':'Character index','纠错反馈':'Suggest a correction','源码 · AGPL-3.0':'Source · AGPL-3.0',
+  '荷马史诗图谱 GitHub 源码与 Star 支持（新窗口打开）':'Homeric Epic Map on GitHub (opens in a new tab)', '查看源码、提交建议或 Star 支持项目':'Explore the source, report an issue or star the project',
   '分享链接已复制':'Share link copied','请复制下方分享链接':'Select and copy the link below','分享链接':'Share link','人物分享链接':'Character share link','分享此人物':'Share this character','关闭':'Close',
   '阵营关系图':'Factions','神话谱系图':'Genealogy','全景谱系':'Full genealogy','人物谱系':'Family view',
   '创世之神':'Primordial Deities','未知':'Unknown','其他':'Other','无匹配':'No matches','无结果':'No results',
