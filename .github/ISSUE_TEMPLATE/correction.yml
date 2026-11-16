@@ -1,0 +1,24 @@
+name: 资料纠错
+description: 附来源修订人物、关系或译名
+title: '[资料纠错] '
+body:
+  - type: input
+    id: figure
+    attributes:
+      label: 人物或关系
+      description: 提供姓名、ID 或图谱分享链接
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: 当前内容与建议修订
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: 具体来源与异说
+      description: 请提供作品、篇章、版本或可靠研究链接，避免粘贴大段受保护译文。
+    validations:
+      required: true

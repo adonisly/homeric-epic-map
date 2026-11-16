@@ -1,0 +1,18 @@
+{
+  "exportedAt": "2026-11-16T07:26:37.848Z",
+  "source": "https://readmap.inklinks.io/knowledge-graphs/homeric-epic",
+  "sha256": "a6a48d1aa8d2475041823ad906e516cb69e61e1544d40c3a8dd8cc95b2c050e9",
+  "counts": {
+    "factions": 9,
+    "figures": 208,
+    "relations": 328,
+    "relationTypes": 8,
+    "nameIndex": 0
+  },
+  "excluded": [
+    "modern translation proper-name index",
+    "unreviewed images",
+    "users, comments, search statistics, credentials and editing history"
+  ],
+  "consistency": "Paginated read-only export; per-table counts checked. Not a cross-table transaction."
+}

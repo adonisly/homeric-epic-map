@@ -1,0 +1,32 @@
+{
+  "name": "homeric-epic-map",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "荷马史诗脉络图 — Interactive Homeric Epic and Greek Mythology Map",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 3200",
+    "build": "npm run check:data && tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 3200",
+    "check:data": "node scripts/check-data.mjs",
+    "test": "node --import tsx --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "lucide-react": "0.454.0",
+    "pinyin-pro": "3.27.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.13",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "typescript": "5.9.3",
+    "tsx": "^4.20.6",
+    "vite": "^7.2.2"
+  }
+}
