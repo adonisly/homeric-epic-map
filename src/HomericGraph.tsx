@@ -2151,7 +2151,8 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
           </div>
         )}
         <div className="control-row filter-row">
-          <span className="control-label"><Palette size={14} /> 阵营图例</span>
+          <details className="legend-disclosure" onToggle={() => setResizeTick(value => value + 1)}>
+          <summary><Palette size={14} /> 阵营图例（{factions.length} 类）</summary>
           <div className="chips" aria-label="人物类别颜色图例">
             {factions.map((f) => (
               <span key={f.id} className="chip">
@@ -2161,6 +2162,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
               </span>
             ))}
           </div>
+          </details>
         </div>
       </header>
 
@@ -2394,6 +2396,10 @@ const HG_CSS = `
 .hg .project-links a:hover,.hg .project-links button:hover{background:#ffffff20}
 .hg .share-result{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px var(--page-gutter);font-size:13px;background:var(--accent-soft)}
 .hg .share-result input{flex:1;min-width:180px;padding:8px;border:1px solid var(--line);border-radius:6px}
+.hg .legend-disclosure{width:100%}
+.hg .legend-disclosure summary{cursor:pointer;color:var(--muted);font-size:12px;line-height:24px}
+.hg .legend-disclosure summary svg{vertical-align:middle;margin-inline:4px}
+.hg .legend-disclosure[open] .chips{margin-top:8px}
 @media(max-width:700px){.hg .hg-hero{flex-wrap:wrap}.hg .project-links{justify-content:flex-start}.hg .project-links .hero-back{font-size:12px;padding:7px 9px}}
 /* 渐变标题横幅:沿用之前的酒红色主色调 */
 .hg .hg-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px var(--page-gutter);color:#fff;background:linear-gradient(100deg,#a5384a 0%,#7c2f43 100%);box-shadow:0 6px 20px var(--shadow)}
