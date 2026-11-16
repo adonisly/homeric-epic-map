@@ -1,6 +1,6 @@
 {
   "name": "homeric-epic-map",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "荷马史诗脉络图 — Interactive Homeric Epic and Greek Mythology Map",
@@ -10,10 +10,11 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 3200",
-    "build": "npm run check:data && tsc --noEmit && vite build",
+    "build": "npm run check:data && npm run check:translations && tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 3200",
     "check:data": "node scripts/check-data.mjs",
-    "test": "node --import tsx --test tests/*.test.mjs"
+    "test": "node --import tsx --test tests/*.test.mjs",
+    "check:translations": "node scripts/check-translations.mjs"
   },
   "dependencies": {
     "react": "19.2.0",

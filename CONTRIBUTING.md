@@ -19,3 +19,7 @@ Fork 后创建分支，执行 `npm ci`、`npm test`、`npm run build`。PR 说�
 公开核心在本仓库审核合并，独立站构建对应 commit；ReadMap 审查新增作者、依赖与许可后引入该版本。公开资料与主站数据库分别维护：先预览逐条差异、核对生产旧值和并发修改，经批准后按记录导入并保留编辑来源，最后重新导出核对。不做自动双向覆盖，代码同步不会写数据库。
 
 许可要求依适用条款提供实际版本对应源码，不强制向本仓库提交 PR。资料问题可使用 Issue 纠错模板。
+
+## English translations / 英文译文
+
+Follow [docs/TRANSLATING.md](docs/TRANSLATING.md) for stable IDs, source matching, review states and terminology. Update translations when changing the Chinese source, and run `npm run check:translations`. Do not translate or reintroduce the excluded modern-translation name index or unreviewed images. Keep both READMEs aligned in all 13 sections.

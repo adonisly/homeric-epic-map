@@ -13,6 +13,8 @@ import {
   scoreNameEntry,
 } from './search'
 import { factionColor, relationColor } from './palette'
+import { createI18n, EMPTY_TRANSLATIONS, type Locale, type Translations } from './i18n'
+import { localizeGraph, relativeRelationLabel, factionName } from './i18n/content.mjs'
 import { kinshipRole } from './kinship'
 import {
   Home,
@@ -99,6 +101,9 @@ interface TreeEdgePath {
 
 export interface HomericGraphProps {
   graph: HomericGraphData
+  locale?: Locale
+  translations?: Translations
+  onLocaleChange?: (locale: Locale, state: ReturnType<typeof parseSharedView>) => void
   backHref?: string
   backLabel?: string
   sourceHref?: string
@@ -109,7 +114,9 @@ export interface HomericGraphProps {
   trackSearch?: (term: string) => Promise<boolean>
 }
 
-export function HomericGraph({ graph, backHref, backLabel = '返回首页', sourceHref, catalogHref, feedbackHref, searchPlaceholder = '搜索人物 / 神职 / 称号 / 地名 / 族群 / 物名（中文·拼音·外文名·别名）', loadHotSearches, trackSearch }: HomericGraphProps) {
+export function HomericGraph({ graph: sourceGraph, locale = 'zh', translations = EMPTY_TRANSLATIONS, onLocaleChange, backHref, backLabel = '返回首页', sourceHref, catalogHref, feedbackHref, searchPlaceholder = '搜索人物 / 神职 / 称号 / 地名 / 族群 / 物名（中文·拼音·外文名·别名）', loadHotSearches, trackSearch }: HomericGraphProps) {
+  const { en, t, name, secondary, generation, hotTerm } = useMemo(() => createI18n(locale, translations, sourceGraph), [locale, translations, sourceGraph.figures])
+  const graph: HomericGraphData = useMemo(() => localizeGraph(sourceGraph, locale, translations), [sourceGraph.figures, sourceGraph.relations, sourceGraph.factions, sourceGraph.relationTypes, sourceGraph.nameIndex, locale, translations])
   const { factions, figures, relations, relationTypes, nameIndex } = graph
 
   // ---------- lookups ----------
@@ -120,18 +127,17 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
   const facById = useMemo(() => Object.fromEntries(factions.map((f) => [f.id, f])), [factions])
   const facLabel = useCallback(
     (id: string | null) => {
-      if (id === 'primordial') return '创世之神'
-      return (id && facById[id]?.name_zh) || '未知'
+      return factionName(id ? facById[id] : undefined, locale)
     },
-    [facById],
+    [facById, locale],
   )
   const relTypeByValue = useMemo(
     () => Object.fromEntries(relationTypes.map((t) => [t.value, t])),
     [relationTypes],
   )
   const relLabel = useCallback(
-    (v: string) => relTypeByValue[v]?.label_zh || v,
-    [relTypeByValue],
+    (v: string) => (en ? (v === 'love' ? 'Desire / Abduction' : relTypeByValue[v]?.label_en) : relTypeByValue[v]?.label_zh) || v,
+    [relTypeByValue, en],
   )
 
   // ---------- state ----------
@@ -160,12 +166,13 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
   // 神话谱系图默认进入人物谱系。
   const [treeMode, setTreeMode] = useState<'layers' | 'ego'>('ego')
   useEffect(() => {
-    const state = parseSharedView(window.location.href, figures.map(figure => figure.id))
+    const state = parseSharedView(window.location.href, figures.map(figure => figure.id), factions.map(faction => faction.id))
     setView(state.view)
     setTreeMode(state.mode)
     setFocusId(state.focus || 'zeus')
     setSelectedId(state.figure)
     setQuery(state.query)
+    setFocusFactionId(state.category || '')
   }, [figures])
 
   useEffect(() => {
@@ -184,13 +191,15 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
     return () => { window.cancelAnimationFrame(frame); window.removeEventListener('keydown', onKey); if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true }) }
   }, [selectedId])
 
+  const switchLanguage = () => onLocaleChange?.(en ? 'zh' : 'en', {view, mode: treeMode, focus: focusId, figure: selectedId, query, category: focusFactionId})
+
   const shareView = async () => {
-    const url = createSharedUrl(window.location.href, { view, mode: treeMode, focus: focusId, figure: selectedId, query })
+    const url = createSharedUrl(window.location.href, { view, mode: treeMode, focus: focusId, figure: selectedId, query, category: focusFactionId })
     try {
       await navigator.clipboard.writeText(url)
-      setShareStatus('分享链接已复制')
+      setShareStatus(t('分享链接已复制'))
     } catch {
-      setShareStatus('请复制下方分享链接')
+      setShareStatus(t('请复制下方分享链接'))
     }
     setShareUrl(url)
   }
@@ -205,7 +214,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
   const zoomKey = view === 'war' ? 'war' : treeMode
   const activeZoom = zoomByView[zoomKey]
   const zoomViewLabel =
-    view === 'war' ? '阵营关系图' : treeMode === 'layers' ? '全景谱系' : '人物谱系'
+    t(view === 'war' ? '阵营关系图' : treeMode === 'layers' ? '全景谱系' : '人物谱系')
   const changeZoom = (delta: number) => {
     setZoomByView((current) => ({
       ...current,
@@ -789,7 +798,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
   const selectSearchResult = (id: string, searchedTerm = query) => {
     setSuggestOpen(false)
     setSelectedNameEntry(null)
-    recordSearch(searchedTerm || byId[id]?.name_zh || '')
+    recordSearch(searchedTerm || name(byId[id]) || '')
     if (view === 'tree' && treeMode === 'ego') setFocus(id)
     if (view === 'war') setPinnedRelationId(id)
     setLocatedId(id)
@@ -1089,11 +1098,11 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
       const labels = kinds.map((kind) => {
         if (kind === 'parent') {
           return familyActiveId === fromId
-            ? kinshipRole(byId[toId]?.gender, 'child')
-            : kinshipRole(byId[fromId]?.gender, 'parent')
+            ? kinshipRole(byId[toId]?.gender, 'child', locale)
+            : kinshipRole(byId[fromId]?.gender, 'parent', locale)
         }
-        if (kind === 'spouse') return kinshipRole(byId[relatedId]?.gender, 'spouse')
-        return kinshipRole(byId[relatedId]?.gender, 'sibling')
+        if (kind === 'spouse') return kinshipRole(byId[relatedId]?.gender, 'spouse', locale)
+        return kinshipRole(byId[relatedId]?.gender, 'sibling', locale)
       })
       const relatedCard = familyActiveId === fromId ? to : from
       const activeIsChild = !!parentRelation && familyActiveId === toId
@@ -1131,13 +1140,13 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         <div className="bar" style={{ background: facColor(c.faction_id) }} />
         <div className="body">
           {c.name_roman && <span className="roman"><Landmark size={11} /> {c.name_roman}</span>}
-          <div className="zh">{c.name_zh}</div>
-          <div className="en">{c.name_en || ''}</div>
+          <div className="zh">{name(c)}</div>
+          <div className="en">{secondary(c)}</div>
           <div className="gen">
-            <span className="g1">{genOf(c.id) != null ? `第${genOf(c.id)}代` : '未定代际'}</span>
+            <span className="g1">{generation(genOf(c.id))}</span>
             {genOf(c.id) != null && facRankOf(c.id) != null && (
               <span className="g2" style={{ color: facColor(c.faction_id) }}>
-                {facLabel(c.faction_id)}·第{facRankOf(c.id)}代
+                {facLabel(c.faction_id)} · {generation(facRankOf(c.id))}
               </span>
             )}
           </div>
@@ -1162,8 +1171,8 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
     return (
       <div className="group" id={sectionId} data-war-section={sectionId ? '' : undefined}>
         <h4>
-          <span className="badge" style={chipStyle(color)}>{badge}</span>
-          {title}
+          <span className="badge" style={chipStyle(color)}>{t(badge)}</span>
+          {t(title)}
         </h4>
         <div className="grid">{cards.map(Card)}</div>
       </div>
@@ -1187,18 +1196,18 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
     return (
       <div id={sectionId} data-war-section={sectionId ? '' : undefined}>
         <div className="lane-title">
-          <span className="badge" style={chipStyle(color)}>{badge}</span>
-          {title}
+          <span className="badge" style={chipStyle(color)}>{t(badge)}</span>
+          {t(title)}
         </div>
         {entries.length ? (
           entries.map(([g, cs]) => (
             <div className="group" key={g}>
-              <h4>{g}</h4>
+              <h4>{t(g)}</h4>
               <div className="grid">{cs.map(Card)}</div>
             </div>
           ))
         ) : (
-          <div className="empty">无匹配</div>
+          <div className="empty">{t('无匹配')}</div>
         )}
       </div>
     )
@@ -1227,7 +1236,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         className={`fc ${cls}${dim ? ' dim' : ''}${hot ? ' hot' : ''}${locatedId === id ? ' located' : ''}`}
         data-fid={id}
         style={{ borderColor: facColor(c.faction_id) }}
-        title={`${c.name_zh} ${c.name_en || ''}`}
+        title={`${name(c)} ${secondary(c)}`}
         onClick={() => selectFamilyCard(id)}
         onMouseEnter={() => setHoverId(id)}
         onMouseLeave={() => setHoverId(null)}
@@ -1235,13 +1244,13 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         <div className="b" style={{ background: facColor(c.faction_id) }} />
         <div className="in">
           {c.name_roman && <span className="roman"><Landmark size={10} /> {c.name_roman}</span>}
-          <div className="z">{c.name_zh}</div>
-          <div className="en">{c.name_en || ''}</div>
-          {note && <span className="frole">{note}</span>}
+          <div className="z">{name(c)}</div>
+          <div className="en">{secondary(c)}</div>
+          {note && <span className="frole">{t(note)}</span>}
           <div className="fgen">
-            <span className="g1">{genOf(id) != null ? `第${genOf(id)}代` : '未定代际'}</span>
+            <span className="g1">{generation(genOf(id))}</span>
             {genOf(id) != null && facRankOf(id) != null && (
-              <span className="g2">{facLabel(c.faction_id)}·第{facRankOf(id)}代</span>
+              <span className="g2">{facLabel(c.faction_id)} · {generation(facRankOf(id))}</span>
             )}
           </div>
           <div className="d">{c.domain || facLabel(c.faction_id)}</div>
@@ -1288,25 +1297,25 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                 y={edge.labelY}
                 textAnchor="middle"
               >
-                {edge.label}
+                {t(edge.label)}
               </text>
             ) : null,
           )}
         </svg>
         <div className="ego-summary">
-          <b>{c.name_zh}的连续谱系</b>
+          <b>{en ? `${name(c)}: continuous lineage` : `${name(c)}的连续谱系`}</b>
           <span>
             {egoLineage.firstGen != null && egoLineage.lastGen != null
-              ? `从第 ${egoLineage.firstGen} 代排至第 ${egoLineage.lastGen} 代`
-              : '按已录入血缘展开'}
-            {' · '}{egoLineage.ancestors} 位直系祖先 · {egoLineage.descendants} 位直系后代
+              ? (en ? `Generations ${egoLineage.firstGen}–${egoLineage.lastGen}` : `从第 ${egoLineage.firstGen} 代排至第 ${egoLineage.lastGen} 代`)
+              : t('按已录入血缘展开')}
+            {' · '}{en ? `${egoLineage.ancestors} direct ${egoLineage.ancestors === 1 ? 'ancestor' : 'ancestors'} · ${egoLineage.descendants} direct ${egoLineage.descendants === 1 ? 'descendant' : 'descendants'}` : `${egoLineage.ancestors} 位直系祖先 · ${egoLineage.descendants} 位直系后代`}
           </span>
         </div>
         {egoLineage.rows.map(({ gen, ids }) => (
           <div className="ego-row" key={gen}>
             <div className="ego-label">
-              <b>第 {gen} 代</b>
-              <span>{sectionLabel(gen)} · {ids.length}人</span>
+              <b>{generation(gen)}</b>
+              <span>{t(sectionLabel(gen))} · {en ? `${ids.length} ${ids.length === 1 ? 'person' : 'people'}` : `${ids.length}人`}</span>
             </div>
             <div className="ego-cards">
               {ids.map((id) => {
@@ -1325,7 +1334,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         ))}
         {egoLineage.unknown.length > 0 && (
           <div className="ego-row">
-            <div className="ego-label muted"><b>未定代际</b><span>{egoLineage.unknown.length}人</span></div>
+            <div className="ego-label muted"><b>{t('未定代际')}</b><span>{en ? `${egoLineage.unknown.length} people` : `${egoLineage.unknown.length}人`}</span></div>
             <div className="ego-cards">
               {egoLineage.unknown.map((id) => {
                 const role = egoLineage.roleById.get(id)!
@@ -1455,11 +1464,11 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
       const labels = kinds.map((kind) => {
         if (kind === 'parent') {
           return treeActiveId === fromId
-            ? kinshipRole(byId[toId]?.gender, 'child')
-            : kinshipRole(byId[fromId]?.gender, 'parent')
+            ? kinshipRole(byId[toId]?.gender, 'child', locale)
+            : kinshipRole(byId[fromId]?.gender, 'parent', locale)
         }
-        if (kind === 'spouse') return kinshipRole(byId[relatedId]?.gender, 'spouse')
-        return kinshipRole(byId[relatedId]?.gender, 'sibling')
+        if (kind === 'spouse') return kinshipRole(byId[relatedId]?.gender, 'spouse', locale)
+        return kinshipRole(byId[relatedId]?.gender, 'sibling', locale)
       })
       const relatedCard = treeActiveId === fromId ? to : from
       const activeIsChild = !!parentRelation && treeActiveId === toId
@@ -1488,7 +1497,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         className={`tc${dim ? ' dim' : ''}${hot ? ' hot' : ''}${locatedId === id ? ' located' : ''}`}
         data-tid={id}
         style={{ borderColor: facColor(c.faction_id) }}
-        title={`${c.name_zh} ${c.name_en || ''}`}
+        title={`${name(c)} ${secondary(c)}`}
         onClick={() => openDrawer(id)}
         onMouseEnter={() => setHoverId(id)}
         onMouseLeave={() => setHoverId(null)}
@@ -1496,12 +1505,12 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         <div className="b" style={{ background: facColor(c.faction_id) }} />
         <div className="in">
           {c.name_roman && <span className="roman"><Landmark size={10} /> {c.name_roman}</span>}
-          <div className="z">{c.name_zh}</div>
-          <div className="en">{c.name_en || ''}</div>
+          <div className="z">{name(c)}</div>
+          <div className="en">{secondary(c)}</div>
           <div className="d">{c.domain || facLabel(c.faction_id)}</div>
           {facRankOf(id) != null && (
             <span className="fr" style={{ color: facColor(c.faction_id) }}>
-              {facLabel(c.faction_id)}·第{facRankOf(id)}代
+              {facLabel(c.faction_id)} · {generation(facRankOf(id))}
             </span>
           )}
         </div>
@@ -1512,7 +1521,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
   const treeContent = () => {
     const { rows, unknown } = treeRows
     if (!rows.length && !unknown.length)
-      return <div className="empty">无匹配</div>
+      return <div className="empty">{t('无匹配')}</div>
     return (
       <div className="tree zoom-surface" ref={treeRef} style={zoomSurfaceStyle}>
         <svg className="tedges">
@@ -1534,7 +1543,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                 y={edge.labelY}
                 textAnchor="middle"
               >
-                {edge.label}
+                {t(edge.label)}
               </text>
             ) : null,
           )}
@@ -1542,7 +1551,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         {rows.map(({ gen, list }) => (
           <div className="trow" key={gen}>
             <div className="tlabel">
-              <span className="tg">第 {gen} 代</span>
+              <span className="tg">{generation(gen)}</span>
               <span className="tn">{list.length}</span>
             </div>
             <div className="tcards">
@@ -1553,7 +1562,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         {unknown.length > 0 && (
           <div className="trow" key="unknown">
             <div className="tlabel">
-              <span className="tg muted">未定代际</span>
+              <span className="tg muted">{t('未定代际')}</span>
               <span className="tn">{unknown.length}</span>
             </div>
             <div className="tcards">
@@ -1651,13 +1660,13 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
           key={`${role}-${id}`}
           className={`kin-node${self ? ' self' : ''}`}
           style={{ left: x, top: y, borderColor: facColor(person.faction_id) }}
-          title={self ? person.name_zh : `查看${person.name_zh}的详细信息`}
+          title={self ? name(person) : en ? `View ${name(person)}` : `查看${name(person)}的详细信息`}
           onClick={self ? undefined : () => openDrawer(id)}
           disabled={self}
         >
-          <span className="kin-role">{role}</span>
-          <b>{person.name_zh}</b>
-          <small>{person.name_en || person.name_roman || facLabel(person.faction_id)}</small>
+          <span className="kin-role">{t(role)}</span>
+          <b>{name(person)}</b>
+          <small>{secondary(person) || person.name_roman || facLabel(person.faction_id)}</small>
         </button>
       )
     }
@@ -1665,38 +1674,43 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
     return (
       <>
         <div className="dhead">
-          <button className="close" onClick={closeDrawer} aria-label="关闭">×</button>
+          <button className="close" onClick={closeDrawer} aria-label={t('关闭')}>×</button>
           <span className="fac" style={chipStyle(facColor(c.faction_id))}>
-            {facLabel(c.faction_id)}{c.group_label ? ' · ' + c.group_label : ''}
+            {facLabel(c.faction_id)}{c.group_label ? ' · ' + t(c.group_label) : ''}
           </span>
-          <h2 className="zh">{c.name_zh}</h2>
+          <h2 className="zh">{name(c)}</h2>
           <div className="en">
-            {[c.name_en, c.name_roman ? '罗马名 ' + c.name_roman : ''].filter(Boolean).join(' · ')}
+            {[secondary(c), c.name_roman ? t('罗马名 ') + c.name_roman : ''].filter(Boolean).join(' · ')}
           </div>
           {c.aliases && c.aliases.length > 0 && (
-            <div className="alias">别名 / 其他译名：{c.aliases.join(' / ')}</div>
+            <div className="alias">{t("别名 / 其他译名：")}{c.aliases.join(' / ')}</div>
           )}
           {c.variant_note && (
             <div className="variant-note">{c.variant_note}</div>
           )}
-          <button type="button" className="person-share" onClick={shareView}>分享此人物</button>
-          {shareUrl && <div className="person-share-result" role="status"><small>{shareStatus}</small><input aria-label="人物分享链接" value={shareUrl} readOnly onFocus={event => event.currentTarget.select()} /></div>}
+          <button type="button" className="person-share" onClick={shareView}>{t('分享此人物')}</button>
+          {onLocaleChange && <button type="button" className="person-share lang-switch" lang={en ? 'zh-CN' : 'en'} aria-label={en ? '切换为中文' : 'Switch to English'} onClick={switchLanguage}>{en ? '中文' : 'English'}</button>}
+          {shareUrl && <div className="person-share-result" role="status"><small>{shareStatus}</small><input aria-label={t('人物分享链接')} value={shareUrl} readOnly onFocus={event => event.currentTarget.select()} /></div>}
         </div>
         <div className="dbody">
+          {en && <p className="translation-note" role="note">{c.translationStatus === 'missing' || c.translationStatus === 'stale'
+            ? 'Some English fields are missing or awaiting an update; the Chinese source is shown there.'
+            : 'Machine-assisted translation of the Chinese study notes. Mythological traditions and variants still need editorial review.'}
+            {' '}<a href="https://github.com/adonisly/homeric-epic-map/issues">Suggest a correction</a></p>}
           {c.domain && (
             <div className="sec">
-              <h5>神职 / 身份</h5>
+              <h5>{t('神职 / 身份')}</h5>
               <div style={{ fontSize: 14 }}>{c.domain}</div>
             </div>
           )}
           {c.bio && c.bio.length > 0 && (
             <div className="sec">
-              <h5>简介</h5>
+              <h5>{t('简介')}</h5>
               <ul>{c.bio.map((i, idx) => <li key={idx}>{i}</li>)}</ul>
             </div>
           )}
           <div className="sec">
-            <h5>人物关系图（{displayedRelationCount}）</h5>
+            <h5>{en ? `Relationships (${displayedRelationCount})` : `人物关系图（${displayedRelationCount}）`}</h5>
             {hasKinship ? (
               <>
                 <div className="kin-graph-scroll" ref={relationGraphRef}>
@@ -1704,7 +1718,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                     className="kin-graph-canvas"
                     style={{ width: graphWidth, height: graphHeight }}
                     role="group"
-                    aria-label={`${c.name_zh}的亲属关系折线图`}
+                    aria-label={en ? `${name(c)} family relationship diagram` : `${name(c)}的亲属关系折线图`}
                   >
                     <svg className="kin-lines" width={graphWidth} height={graphHeight} aria-hidden="true">
                       {hasGreatGrandparents && (
@@ -1853,7 +1867,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                         id,
                         greatGrandparentXs[index],
                         greatGrandparentY,
-                        kinshipRole(byId[id]?.gender, 'great-grandparent'),
+                        kinshipRole(byId[id]?.gender, 'great-grandparent', locale),
                       ),
                     )}
                     {grandparentIds.map((id, index) =>
@@ -1861,14 +1875,14 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                         id,
                         grandparentXs[index],
                         grandparentY,
-                        kinshipRole(byId[id]?.gender, 'grandparent'),
+                        kinshipRole(byId[id]?.gender, 'grandparent', locale),
                       ),
                     )}
                     {parentIds.map((id, index) =>
-                      relationNode(id, parentXs[index], parentY, kinshipRole(byId[id]?.gender, 'parent')),
+                      relationNode(id, parentXs[index], parentY, kinshipRole(byId[id]?.gender, 'parent', locale)),
                     )}
                     {siblingIds.map((id, index) =>
-                      relationNode(id, siblingXs[index], peerY, kinshipRole(byId[id]?.gender, 'sibling')),
+                      relationNode(id, siblingXs[index], peerY, kinshipRole(byId[id]?.gender, 'sibling', locale)),
                     )}
                     {relationNode(selectedId, centerX, peerY, '本人', true)}
                     {spouseIds.map((id, index) =>
@@ -1877,24 +1891,24 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                         spouseXs[index],
                         peerY,
                         siblingSet.has(id)
-                          ? `${kinshipRole(byId[id]?.gender, 'spouse')} · ${kinshipRole(byId[id]?.gender, 'sibling')}`
-                          : kinshipRole(byId[id]?.gender, 'spouse'),
+                          ? `${kinshipRole(byId[id]?.gender, 'spouse', locale)} · ${kinshipRole(byId[id]?.gender, 'sibling', locale)}`
+                          : kinshipRole(byId[id]?.gender, 'spouse', locale),
                       ),
                     )}
                     {childIds.map((id, index) =>
-                      relationNode(id, childXs[index], childY, kinshipRole(byId[id]?.gender, 'child')),
+                      relationNode(id, childXs[index], childY, kinshipRole(byId[id]?.gender, 'child', locale)),
                     )}
                   </div>
                 </div>
-                <p className="kin-hint">向上显示曾祖父母、祖父母与父母，向下显示子女；左右表示同辈或配偶。点击关系人可继续查看。</p>
+                <p className="kin-hint">{t('向上显示曾祖父母、祖父母与父母，向下显示子女；左右表示同辈或配偶。点击关系人可继续查看。')}</p>
               </>
             ) : (
-              <div className="relation-empty">（暂无录入亲属关系）</div>
+              <div className="relation-empty">{t('（暂无录入亲属关系）')}</div>
             )}
 
             {otherRels.length > 0 && (
               <div className="other-relations">
-                <h6>其他关系</h6>
+                <h6>{t('其他关系')}</h6>
                 <div className="rel">
                   {otherRels.map((relation, index) => {
                     const person = byId[relation.other]
@@ -1907,8 +1921,8 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                         onClick={() => openDrawer(person.id)}
                       >
                         <span className="d" style={{ background: facColor(person.faction_id) }} />
-                        <span className="rk">{relLabel(relation.kind)}</span>
-                        {person.name_zh}
+                        <span className="rk">{relativeRelationLabel(relation.kind, relation.dir, locale, relLabel(relation.kind))}</span>
+                        {name(person)}
                       </button>
                     )
                   })}
@@ -1922,23 +1936,25 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
   }
 
   return (
-    <div className="hg">
+    <div className={`hg${en ? ' hg-en' : ''}`}>
       <style>{HG_CSS}</style>
 
       <div className="hg-hero">
         <div className="htxt">
-          <h1><Landmark size={22} strokeWidth={2} /> 荷马史诗脉络图</h1>
-          <p>交互式探索荷马史诗中的神祇与英雄 · 神谱 · 特洛伊战争 · 伊利亚特 · 奥德赛</p>
+          <h1><Landmark size={22} strokeWidth={2} />{t('荷马史诗脉络图')}</h1>
+          <p>{t('交互式探索荷马史诗中的神祇与英雄 · 神谱 · 特洛伊战争 · 伊利亚特 · 奥德赛')}</p>
         </div>
-        <nav className="project-links" aria-label="项目与分享">
-          <button type="button" onClick={shareView}>分享当前视图</button>
-          {catalogHref && <a href={catalogHref}>人物索引</a>}
-          {feedbackHref && <a href={feedbackHref} target="_blank" rel="noopener noreferrer">纠错反馈</a>}
-          {sourceHref && <a href={sourceHref} target="_blank" rel="noopener noreferrer">源码 · AGPL-3.0</a>}
-          {backHref && <a className="hero-back" href={backHref}><Home size={16} strokeWidth={2} /> <span>{backLabel}</span></a>}
+        <nav className="project-links" aria-label={t('项目与分享')}>
+          {onLocaleChange && <button type="button" lang={en ? 'zh-CN' : 'en'} aria-label={en ? '切换为中文' : 'Switch to English'}
+            onClick={switchLanguage}>{en ? '中文' : 'English'}</button>}
+          <button type="button" onClick={shareView}>{t('分享当前视图')}</button>
+          {catalogHref && <a href={catalogHref}>{t('人物索引')}</a>}
+          {feedbackHref && <a href={feedbackHref} target="_blank" rel="noopener noreferrer">{t('纠错反馈')}</a>}
+          {sourceHref && <a href={sourceHref} target="_blank" rel="noopener noreferrer">{t('源码 · AGPL-3.0')}</a>}
+          {backHref && <a className="hero-back" href={backHref}><Home size={16} strokeWidth={2} /> <span>{t(backLabel)}</span></a>}
         </nav>
       </div>
-      {shareUrl && <div className="share-result" role="status"><span>{shareStatus}</span><input aria-label="分享链接" readOnly value={shareUrl} onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => setShareUrl('')}>关闭</button></div>}
+      {shareUrl && <div className="share-result" role="status"><span>{shareStatus}</span><input aria-label={t('分享链接')} readOnly value={shareUrl} onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => setShareUrl('')}>{t('关闭')}</button></div>}
 
       <header className="hg-header" ref={headerRef}>
         <div className="toolbar">
@@ -1966,15 +1982,16 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                   }
                 }
               }}
-              placeholder={searchPlaceholder}
+              placeholder={t(searchPlaceholder)}
+              aria-label={t(searchPlaceholder)}
               autoComplete="off"
             />
             {query && (
               <button
                 type="button"
                 className="search-clear"
-                aria-label="清除搜索"
-                title="清除搜索"
+                aria-label={t('清除搜索')}
+                title={t('清除搜索')}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={clearSearch}
               >
@@ -2001,14 +2018,14 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                             <span className="dot" style={{ background: facColor(c.faction_id) }} />
                             <span className="suggest-person">
                               <span className="suggest-person-main">
-                                <b>{c.name_zh}</b>
+                                <b>{name(c)}</b>
                                 <span className="suggest-copy">
-                                  {[c.name_en, c.name_roman, c.domain].filter(Boolean).join(' · ')}
+                                  {[secondary(c), c.name_roman, c.domain].filter(Boolean).join(' · ')}
                                 </span>
                               </span>
                               {c.aliases && c.aliases.length > 0 && (
                                 <span className="suggest-aliases">
-                                  <em>别名</em>
+                                  <em>{t('别名')}</em>
                                   <span>{c.aliases.join(' / ')}</span>
                                 </span>
                               )}
@@ -2028,7 +2045,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                           }}
                         >
                           <span className="name-kind">
-                            {NAME_INDEX_CATEGORY_LABELS[entry.category]}
+                            {t(NAME_INDEX_CATEGORY_LABELS[entry.category])}
                           </span>
                           <b>{entry.name_zh}</b>
                           <span className="suggest-copy">
@@ -2038,21 +2055,21 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                       )
                     })
                   ) : (
-                    <div className="suggest-empty">无结果</div>
+                    <div className="suggest-empty">{t('无结果')}</div>
                   )
                 ) : (
                   <div className="search-discovery">
                     {searchHistory.length > 0 && (
                       <section className="search-memory">
                         <div className="search-memory-title">
-                          <span><Clock3 size={14} /> 最近搜索</span>
+                          <span><Clock3 size={14} />{t('最近搜索')}</span>
                           <button
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={clearSearchHistory}
-                            title="清除搜索历史"
+                            title={t('清除搜索历史')}
                           >
-                            <Trash2 size={13} /> 清除
+                            <Trash2 size={13} />{t('清除')}
                           </button>
                         </div>
                         <div className="search-term-list">
@@ -2072,19 +2089,19 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                     {hotSearches.length > 0 && (
                       <section className="search-memory hot">
                         <div className="search-memory-title">
-                          <span><TrendingUp size={14} /> 热门搜索</span>
-                          <small>按查询次数排序</small>
+                          <span><TrendingUp size={14} />{t('热门搜索')}</span>
+                          <small>{t('按查询次数排序')}</small>
                         </div>
                         <div className="search-term-list">
                           {hotSearches.map((item, index) => (
                             <button
                               type="button"
-                              key={item.term}
+                              key={hotTerm(item.term)}
                               onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => searchFromSavedTerm(item.term)}
+                              onClick={() => searchFromSavedTerm(hotTerm(item.term))}
                             >
                               <i>{index + 1}</i>
-                              <span>{item.term}</span>
+                              <span>{hotTerm(item.term)}</span>
                               <small>{item.count > 999 ? '999+' : item.count}</small>
                             </button>
                           ))}
@@ -2100,17 +2117,17 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
             <aside className="name-index-detail" aria-live="polite">
               <div>
                 <span className="name-kind">
-                  {NAME_INDEX_CATEGORY_LABELS[selectedNameEntry.category]}
+                  {t(NAME_INDEX_CATEGORY_LABELS[selectedNameEntry.category])}
                 </span>
                 <b>{selectedNameEntry.name_zh}</b>
                 {selectedNameEntry.name_en && <i>{selectedNameEntry.name_en}</i>}
               </div>
               <p>{selectedNameEntry.description}</p>
-              <small>来源：{selectedNameEntry.source_label}</small>
+              <small>{t("来源：")}{selectedNameEntry.source_label}</small>
               <button
                 type="button"
-                aria-label="关闭专名释义"
-                title="关闭专名释义"
+                aria-label={t('关闭专名释义')}
+                title={t('关闭专名释义')}
                 onClick={() => setSelectedNameEntry(null)}
               >
                 <X size={14} />
@@ -2118,24 +2135,24 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
             </aside>
           )}
           <div className="seg">
-            <button className={view === 'war' ? 'on' : ''} onClick={() => setView('war')}><Swords size={15} /> 阵营关系图</button>
-            <button className={view === 'tree' ? 'on' : ''} onClick={() => setView('tree')}><Network size={15} /> 神话谱系图</button>
+            <button className={view === 'war' ? 'on' : ''} onClick={() => setView('war')}><Swords size={15} />{t('阵营关系图')}</button>
+            <button className={view === 'tree' ? 'on' : ''} onClick={() => setView('tree')}><Network size={15} />{t('神话谱系图')}</button>
           </div>
           <div className="figure-count" aria-live="polite">
             <Users size={15} />
             {view === 'war' ? (
               warFigureCounts.visible === warFigureCounts.total
-                ? <>共 <b>{warFigureCounts.total}</b> 位人物</>
-                : <>显示 <b>{warFigureCounts.visible}</b> / 共 {warFigureCounts.total}</>
+                ? <>{en ? '' : '共 '}<b>{warFigureCounts.total}</b>{en ? ' characters' : ' 位人物'}</>
+                : <>{en ? 'Showing ' : '显示 '}<b>{warFigureCounts.visible}</b> / {warFigureCounts.total}</>
             ) : (
-              <>共 <b>{figures.length}</b> 位人物</>
+              <>{en ? '' : '共 '}<b>{figures.length}</b>{en ? ' characters' : ' 位人物'}</>
             )}
           </div>
         </div>
         {view === 'war' && (
           <div className="control-row jump-row">
-            <span className="control-label"><Navigation size={14} /> 快速定位</span>
-            <nav className="section-nav" aria-label="阵营关系图区块导航">
+            <span className="control-label"><Navigation size={14} />{t('快速定位')}</span>
+            <nav className="section-nav" aria-label={t('阵营关系图区块导航')}>
               {sectionNavItems.map((item) => (
                 <button
                   key={item.id}
@@ -2145,7 +2162,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                   aria-current={activeSectionId === item.id ? 'location' : undefined}
                   onClick={() => scrollToSection(item.id)}
                 >
-                  {item.label}
+                  {t(item.label)}
                   <small>{item.visible}</small>
                 </button>
               ))}
@@ -2154,8 +2171,8 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         )}
         <div className="control-row filter-row">
           <details className="legend-disclosure" onToggle={() => setResizeTick(value => value + 1)}>
-          <summary><Palette size={14} /> 阵营图例（{factions.length} 类 · {figures.length} 人物）</summary>
-          <div className="chips" aria-label="人物类别颜色图例">
+          <summary><Palette size={14} /> {en ? `Legend (${factions.length} categories · ${figures.length} characters)` : `阵营图例（${factions.length} 类 · ${figures.length} 人物）`}</summary>
+          <div className="chips" aria-label={t('人物类别颜色图例')}>
             {factions.map((f) => (
               <span key={f.id} className="chip">
                 <span className="d" style={{ background: facColor(f.id) }} />
@@ -2169,15 +2186,15 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
       </header>
 
       <main className="hg-main" onClick={handleCanvasClick}>
-        <div className="graph-tools" aria-label={`${zoomViewLabel}缩放控制`}>
+        <div className="graph-tools" aria-label={en ? `${zoomViewLabel} zoom controls` : `${zoomViewLabel}缩放控制`}>
           <span className="graph-tools-label">{zoomViewLabel}</span>
           <div className="zoom-controls">
             <button
               type="button"
               onClick={() => changeZoom(-0.1)}
               disabled={activeZoom <= 0.7}
-              aria-label="缩小视图"
-              title="缩小"
+              aria-label={t('缩小视图')}
+              title={t('缩小')}
             >
               <ZoomOut size={14} />
             </button>
@@ -2186,8 +2203,8 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
               type="button"
               onClick={() => changeZoom(0.1)}
               disabled={activeZoom >= 1.5}
-              aria-label="放大视图"
-              title="放大"
+              aria-label={t('放大视图')}
+              title={t('放大')}
             >
               <ZoomIn size={14} />
             </button>
@@ -2196,9 +2213,9 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
               className="zoom-reset"
               onClick={resetZoom}
               disabled={activeZoom === 1}
-              title="恢复到 100%"
+              title={t('恢复到 100%')}
             >
-              <RotateCcw size={13} /> 重置
+              <RotateCcw size={13} />{t('重置')}
             </button>
           </div>
         </div>
@@ -2235,7 +2252,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                       fill={e.color}
                       textAnchor="middle"
                     >
-                      {e.label}
+                      {t(e.label)}
                     </text>
                   </g>
                 ))}
@@ -2259,44 +2276,44 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
             <div className="famctl">
               <div className="seg treeseg">
                 <button className={treeMode === 'layers' ? 'on' : ''} onClick={() => setTreeMode('layers')}>
-                  <Network size={15} /> 全景谱系
+                  <Network size={15} />{t('全景谱系')}
                 </button>
                 <button className={treeMode === 'ego' ? 'on' : ''} onClick={() => setTreeMode('ego')}>
-                  <Undo2 size={15} /> 人物谱系
+                  <Undo2 size={15} />{t('人物谱系')}
                 </button>
               </div>
               {treeMode === 'layers' ? (
                 <span className="famhint">
-                  从<b>混沌之神</b>(第 1 代)自上而下按代际繁衍展开 · 悬停高亮直系上下游 · 点击查看详情
+                  {en ? 'From Chaos (generation 1), follow the recorded generations downward. Hover to highlight direct relatives; select a character for details.' : '从混沌之神(第 1 代)自上而下按代际繁衍展开 · 悬停高亮直系上下游 · 点击查看详情'}
                 </span>
               ) : (
                 <>
-                  <span className="famctl-t">类别</span>
+                  <span className="famctl-t">{t('类别')}</span>
                   <select
                     className="focus-category"
                     value={focusFactionId}
                     onChange={(e) => chooseFocusFaction(e.target.value)}
-                    aria-label="按人物类别筛选焦点"
+                    aria-label={t('按人物类别筛选焦点')}
                   >
-                    <option value="">全部 · {figures.length}人</option>
+                    <option value="">{en ? 'All' : '全部'} · {figures.length}{en ? '' : '人'}</option>
                     {focusCategoryOptions.map((faction) => (
                       <option key={faction.id} value={faction.id}>
-                        {facLabel(faction.id)} · {facCounts[faction.id] || 0}人
+                        {facLabel(faction.id)} · {facCounts[faction.id] || 0}{en ? '' : '人'}
                       </option>
                     ))}
                   </select>
-                  <span className="famctl-t">焦点</span>
+                  <span className="famctl-t">{t('焦点')}</span>
                   <select
                     className="focus-person"
                     value={focusId}
                     onChange={(e) => chooseFocusFigure(e.target.value)}
-                    aria-label="选择焦点人物"
+                    aria-label={t('选择焦点人物')}
                   >
                     {focusOptions.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {genOf(c.id) != null ? `第${genOf(c.id)}代 · ` : ''}
-                        {c.name_zh}
-                        {c.name_en ? ` / ${c.name_en}` : ''}
+                        {genOf(c.id) != null ? `${generation(genOf(c.id))} · ` : ''}
+                        {name(c)}
+                        {secondary(c) ? ` / ${secondary(c)}` : ''}
                       </option>
                     ))}
                   </select>
@@ -2304,13 +2321,13 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                     type="button"
                     className="focus-reset"
                     disabled={focusId === 'zeus' && !focusFactionId && famHist.length === 0}
-                    title="恢复到全部类别、宙斯焦点"
+                    title={t('恢复到全部类别、宙斯焦点')}
                     onClick={resetFocus}
                   >
-                    <RotateCcw size={13} /> 恢复默认
+                    <RotateCcw size={13} />{t('恢复默认')}
                   </button>
-                  {focusId && <div className="crumb" aria-label="从最早祖先到焦点人物的血缘主链">
-                    <span className="crumb-label">血缘主链</span>
+                  {focusId && <div className="crumb" aria-label={t('从最早祖先到焦点人物的血缘主链')}>
+                    <span className="crumb-label">{t('血缘主链')}</span>
                     {focusAncestryPath.map((id, index) => {
                       const isRoot = index === 0
                       const isFocus = id === focusId
@@ -2318,16 +2335,16 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                         <React.Fragment key={id}>
                           {index > 0 && <span className="sep">›</span>}
                           {isFocus ? (
-                            <b>{byId[id]?.name_zh}</b>
+                            <b>{name(byId[id])}</b>
                           ) : (
                             <button
                               type="button"
                               className={isRoot ? 'origin' : ''}
-                              title={isRoot ? `${byId[id]?.name_zh} · ${byId[id]?.domain || '最早已录入祖先'}` : `聚焦到${byId[id]?.name_zh}`}
+                              title={isRoot ? `${name(byId[id])} · ${byId[id]?.domain || t('最早已录入祖先')}` : en ? `Focus on ${name(byId[id])}` : `聚焦到${name(byId[id])}`}
                               onClick={() => setFocus(id)}
                             >
-                              {isRoot && <span>起源</span>}
-                              {byId[id]?.name_zh}
+                              {isRoot && <span>{t('起源')}</span>}
+                              {name(byId[id])}
                             </button>
                           )}
                         </React.Fragment>
@@ -2335,7 +2352,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
                     })}
                     {famHist.length > 0 && (
                       <button type="button" className="crumb-back" onClick={() => goBack('__prev')}>
-                        <Undo2 size={12} /> 返回
+                        <Undo2 size={12} />{t('返回')}
                       </button>
                     )}
                   </div>}
@@ -2358,7 +2375,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
           clearRelationHighlight()
         }}
       />
-      <aside ref={drawerRef} className={`drawer${selectedId ? ' show' : ''}`} role={selectedId ? 'dialog' : undefined} aria-modal={selectedId ? true : undefined} aria-label={selectedId ? `${byId[selectedId]?.name_zh}人物详情` : undefined} inert={!selectedId}>{drawerContent()}</aside>
+      <aside ref={drawerRef} className={`drawer${selectedId ? ' show' : ''}`} role={selectedId ? 'dialog' : undefined} aria-modal={selectedId ? true : undefined} aria-label={selectedId ? (en ? `${name(byId[selectedId])} details` : `${byId[selectedId]?.name_zh}人物详情`) : undefined} inert={!selectedId}>{drawerContent()}</aside>
     </div>
   )
 }
@@ -2675,6 +2692,12 @@ const HG_CSS = `
 .hg .relpill .rk{color:var(--muted);font-size:10.5px}
 .hg .relpill .d{width:8px;height:8px;border-radius:50%}
 .hg .empty{color:var(--muted);text-align:center;padding:60px 20px}
+.hg .lang-switch{margin-left:8px}
+.hg .translation-note{margin:0 0 18px;padding:10px 12px;background:#fff7e6;border-radius:8px;color:#714c1b;font-size:12px;line-height:1.6}
+.hg .translation-note a{color:inherit;text-decoration:underline}
+.hg-en .card .zh,.hg-en .fc .z,.hg-en .tc .z{overflow-wrap:anywhere;line-height:1.3}
+.hg-en .kin-node b,.hg-en .kin-role{white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+.hg-en .project-links{flex-wrap:wrap}
 /* ===== 移动端响应式 ===== */
 @media (max-width:860px){
   .hg{--page-gutter:clamp(16px,4vw,28px)}

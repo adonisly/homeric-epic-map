@@ -15,6 +15,9 @@ export interface HomericFaction {
 }
 
 export interface HomericFigure {
+  searchAliases?: string[]
+  searchTerms?: string[]
+  translationStatus?: string
   id: string
   name_zh: string
   name_en: string | null

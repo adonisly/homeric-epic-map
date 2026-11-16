@@ -21,6 +21,16 @@ const ROLE_LABELS: Record<KinshipRole, Record<HomericGender, string>> = {
 export function kinshipRole(
   gender: HomericGender | null | undefined,
   relation: KinshipRole,
+  locale: 'zh' | 'en' = 'zh',
 ) {
-  return ROLE_LABELS[relation][gender || 'unknown']
+  return (locale === 'en' ? ENGLISH_ROLE_LABELS : ROLE_LABELS)[relation][gender || 'unknown']
+}
+
+const ENGLISH_ROLE_LABELS: Record<KinshipRole, Record<HomericGender,string>> = {
+  parent:{male:'Father',female:'Mother',unknown:'Parent'},
+  grandparent:{male:'Grandfather',female:'Grandmother',unknown:'Grandparent'},
+  'great-grandparent':{male:'Great-grandfather',female:'Great-grandmother',unknown:'Great-grandparent'},
+  child:{male:'Son',female:'Daughter',unknown:'Child'},
+  sibling:{male:'Brother',female:'Sister',unknown:'Sibling'},
+  spouse:{male:'Husband',female:'Wife',unknown:'Spouse'},
 }

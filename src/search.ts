@@ -50,8 +50,8 @@ export interface FigureSearchIndex {
 }
 
 export function buildFigureIndex(f: HomericFigure): FigureSearchIndex {
-  const names = [f.name_zh, f.name_en, f.name_roman, f.py, ...(f.aliases || [])].filter(Boolean) as string[]
-  const content = [f.domain, f.epithet, f.group_label, ...(f.bio || []), ...(f.tags || [])]
+  const names = [f.name_zh, f.name_en, f.name_roman, f.py, ...(f.aliases || []), ...(f.searchAliases || [])].filter(Boolean) as string[]
+  const content = [f.domain, f.epithet, f.group_label, ...(f.bio || []), ...(f.tags || []), ...(f.searchTerms || [])]
     .filter(Boolean) as string[]
   return {
     id: f.id,

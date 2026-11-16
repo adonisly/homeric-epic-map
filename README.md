@@ -1,5 +1,7 @@
 # 荷马史诗脉络图 · 希腊神话人物关系图 | Homeric Epic Map
 
+**中文** · [English](README.en.md)
+
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 
 **开源许可：本项目原创代码采用 [AGPL-3.0-only](LICENSE)（仅第 3 版）。** 修改版本通过网络与用户交互时，须按许可向这些用户提供该版本的完整对应源码。第三方依赖保留各自的许可与声明。
@@ -8,11 +10,11 @@
 
 **当前公开快照：208 位人物 · 9 个类别 · 328 条关系 · 3 种展示模式 · 无需数据库**
 
-**[在线体验：开源独立版（推荐）](https://homeric-epic.inklinks.io/)**
+**[在线体验：开源独立版（推荐）](https://homeric-epic.inklinks.io/)** · **[English website](https://homeric-epic.inklinks.io/en/)**
 
 专注人物与关系浏览，内容随开源版本更新；纠错和建议通过 [GitHub Issues](https://github.com/adonisly/homeric-epic-map/issues) 提交。
 
-A Chinese-language, interactive **Homeric epic map** and **Greek mythology family tree** for exploring the **Iliad**, **Odyssey**, Olympian gods, Greek heroes and Trojan War factions. Search Chinese, English, Roman names, pinyin and initials. Runs with bundled JSON data; no database, login or API key required.
+A bilingual Chinese–English, interactive **Homeric epic map** and **Greek mythology family tree** for exploring the **Iliad**, **Odyssey**, Olympian gods, Greek heroes and Trojan War factions. Search Chinese, English, Roman names, pinyin and initials. Runs with bundled JSON data; no database, login or API key required.
 
 [![荷马史诗脉络图界面：诸神阵营关系、人物卡片与搜索入口](assets/overview.jpg)](https://homeric-epic.inklinks.io/)
 
@@ -39,7 +41,8 @@ A Chinese-language, interactive **Homeric epic map** and **Greek mythology famil
 
 ## 分享与探索
 
-- 点击标题栏的「分享当前视图」，复制展示模式、焦点人物、已打开的详情与搜索词；点击人物详情中的「分享此人物」，让对方直接进入对应人物。链接保留当前站点的域名与路径，不保存缩放、滚动或本机搜索历史。
+- 标题栏或人物详情中的 `中文 / English` 可切换语言，保留当前视图、焦点、类别、搜索和已打开人物；英文入口为 `/en/`。
+- 点击标题栏的「分享当前视图」，复制展示模式、焦点人物、类别、已打开的详情与搜索词；点击人物详情中的「分享此人物」，让对方直接进入对应人物。链接保留当前站点的域名与路径，不保存缩放、滚动或本机搜索历史。
 - 从「宙斯家系」「阿基琉斯」「奥德修斯」三个入口开始探索。
 - [人物索引](https://homeric-epic.inklinks.io/explore/)无需 JavaScript 即可阅读，点击姓名进入对应图谱；该导航由公开人物数据生成，不是现代译本的专名索引。
 - 示例：[宙斯家系](https://homeric-epic.inklinks.io/?view=tree&mode=ego&focus=zeus)、[阿基琉斯人物详情](https://homeric-epic.inklinks.io/?view=tree&mode=ego&focus=achilles&figure=achilles)、[奥德修斯人物详情](https://homeric-epic.inklinks.io/?view=tree&mode=ego&focus=odysseus&figure=odysseus)。
@@ -100,10 +103,11 @@ npm ci
 npm run dev
 ```
 
-打开 `http://127.0.0.1:3200`。
+打开 `http://127.0.0.1:3200/`（中文）或 `http://127.0.0.1:3200/en/`（英文）。
 
 ```bash
 npm test
+npm run check:translations
 npm run build
 npm run preview
 ```
@@ -111,6 +115,8 @@ npm run preview
 构建结果在 `dist/`，可部署到 GitHub Pages、Vercel 或其他静态网站托管服务。构建使用相对资源路径，也支持部署在子目录。
 
 ## 功能与数据
+
+中英双语覆盖人物卡片、简介、神职／身份、异说、亲属称谓、三种视图、搜索、分享与静态索引。译文保存在 `public/data/locales/en.json`，按稳定 ID 和逐字段原文匹配；缺失或过期时明确回退中文，发布检查要求补齐。首批为机器辅助翻译，类别／分组、部分神职和核心人物摘要已人工整理，其他内容仍待校对，不代表史料已核实。详见 [双语维护说明](docs/TRANSLATING.md)。
 
 - 中文、英文、罗马名、别名、拼音全拼和首字母搜索；支持神职与称号关键词。
 - 人物谱系、全景谱系、阵营关系三种展示模式；可切换焦点人物与类别。
@@ -124,6 +130,8 @@ npm run preview
 
 ## 贡献
 
+英文译文请按 [TRANSLATING.md](docs/TRANSLATING.md) 提交，保留原文匹配与审核状态；两种 README 保持相同 13 章结构。
+
 欢迎通过 Issue 提出纠错，或通过 Pull Request 贡献代码与资料。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。请注明具体作品、篇章、版本或可靠研究来源，区分史诗原文与后世神话，保留稳定人物 ID，并说明关系方向与异说依据。
 
 请勿提交现代译本的完整索引、大段受保护译文、未经授权的插图、用户记录或凭据。结构检查不等于史实与授权已经完成审核。
@@ -131,6 +139,8 @@ npm run preview
 想向同学或读书伙伴介绍这个项目？可参考[项目介绍与演示示例](docs/SHARING.md)，并使用仓库内的截图和动图。
 
 ## 网站搜索与分享配置
+
+构建分别输出中英文真实 HTML 入口和静态索引、自引用 canonical、双向 hreflang、分享元信息及四条正式 sitemap URL；英文入口不依赖托管商的 SPA 回退。英文分享封面为 [PNG](public/social-preview-en.png) 和 [SVG](assets/social-preview-en.svg)。
 
 构建会从公开快照生成首页静态介绍、人物索引、sitemap.xml 和 robots.txt，并加入 canonical、Open Graph 与 Twitter Card。它们改善内容读取与链接预览，不保证收录或排名。
 
