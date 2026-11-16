@@ -2152,7 +2152,7 @@ export function HomericGraph({ graph, backHref, backLabel = '返回首页', sour
         )}
         <div className="control-row filter-row">
           <details className="legend-disclosure" onToggle={() => setResizeTick(value => value + 1)}>
-          <summary><Palette size={14} /> 阵营图例（{factions.length} 类）</summary>
+          <summary><Palette size={14} /> 阵营图例（{factions.length} 类 · {figures.length} 人物）</summary>
           <div className="chips" aria-label="人物类别颜色图例">
             {factions.map((f) => (
               <span key={f.id} className="chip">
@@ -2692,6 +2692,12 @@ const HG_CSS = `
   .hg .famctl select{flex:1 0 100%}
 }
 @media (max-width:520px){
+  .hg .hg-hero{padding:14px 16px;gap:10px}
+  .hg .figure-count{display:none}
+  .hg .famctl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+  .hg .famctl .treeseg,.hg .famctl .crumb,.hg .famctl .famhint{grid-column:1 / -1}
+  .hg .famctl .famctl-t{display:none}
+  .hg .famctl select{width:100%;min-width:0}
   .hg .control-row{display:block}
   .hg .control-label{padding-top:0;margin-bottom:6px}
   .hg .section-nav{width:100%}
